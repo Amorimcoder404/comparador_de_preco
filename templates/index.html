@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Preços em Supermercados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f7fc;
+        }
+
+        @keyframes fadeUp {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .fade { animation: fadeUp .45s ease-out; }
+        .search-box:focus { box-shadow: 0 0 0 3px rgba(99,102,241,.35); }
+        #cartDrawer { transition: transform .35s ease; }
+    </style>
+</head>
+
+<body>
+    <!-- DRAWER DO CARRINHO -->
+    <div id="cartDrawer" class="fixed top-0 right-0 w-80 h-full bg-white shadow-2xl p-6 transform translate-x-full z-50 overflow-y-auto">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">🛒 Meu Carrinho</h2>
+        <ul id="cartList" class="space-y-3 mb-6 text-gray-700"></ul>
+
+        <p class="text-lg font-semibold text-gray-800">Total: <span id="cartTotal">R$ 0,00</span></p>
+
+        <button class="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">
+            Finalizar Pedido
+        </button>
+    </div>
+
+    <!-- BOTÃO FLOTANTE DO CARRINHO -->
+    <button onclick="toggleCart()" class="fixed bottom-6 right-6 bg-indigo-600 text-white px-6 py-4 rounded-full shadow-xl hover:bg-indigo-700 transition font-bold z-40">
+        🛒 Carrinho
+    </button>
+
+    <div class="container mx-auto p-4 md:p-10 max-w-6xl">
+        <header class="text-center mb-10 bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700 p-10 rounded-3xl shadow-2xl text-white fade">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Comparador de Preços</h1>
+            <p class="text-indigo-100 mb-8 text-lg">Compare preços em tempo real e economize!</p>
+
+            <form action="/" method="GET" class="flex flex-col md:flex-row gap-4 max-w-3xl mx-auto">
+                <input type="text" name="search_term" placeholder="Buscar produto..." value="{{ search_term }}" required
+                    class="search-box flex-grow p-4 rounded-xl border border-indigo-200 text-gray-800 shadow-md transition">
+                <button type="submit"
+                    class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-4 px-8 rounded-xl shadow-lg transition hover:-translate-y-0.5">
+                    Pesquisar
+                </button>
+            </form>
+        </header>
+
+        <!-- RESULTADOS -->
+        <section class="mt-8">
+            {% if search_performed and not products %}
+                <div class="text-center p-10 bg-yellow-100 text-yellow-700 rounded-2xl border-2 border-yellow-300 shadow-lg fade">
+                    <p class="font-semibold text-xl">Nenhum resultado encontrado</p>
+                    <p class="text-md mt-2">Nada encontrado para <strong>“{{ search_term }}”</strong>.</p>
+                </div>
+
+            {% elif products %}
+            <h2 class="text-3xl font-bold text-gray-700 mb-6 pb-2 border-b-4 border-indigo-200 fade">
+                Resultados para: <span class="text-indigo-600">{{ search_term }}</span>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for product in products %}
+                <div class="bg-white p-6 rounded-2xl shadow-xl fade relative transition duration-300
+                    {% if loop.index == 1 %} border-4 border-amber-500 scale-[1.03] hover:shadow-amber-200 {% else %} border border-gray-200 hover:shadow-xl {% endif %}">
+
+                    {% if loop.index == 1 %}
+                    <span class="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl rounded-tr-xl">⭐ MAIS BARATO</span>
+                    {% endif %}
+
+                    <div class="flex justify-center h-40 bg-gray-50 rounded-xl p-4 border border-gray-100 mb-4">
+                        <img src="{{ product.image_url }}" alt="{{ product.nome }}"
+                            class="object-contain w-full h-full"
+                            onerror="this.onerror=null; this.src='https://placehold.co/200x200/e5e7eb/6b7280?text=Sem+Imagem';">
+                    </div>
+
+                    <p class="text-xs font-semibold text-indigo-500 uppercase">{{ product.supermercado }}</p>
+                    <h3 class="text-lg font-bold text-gray-800 line-clamp-2 mt-1">{{ product.nome }}</h3>
+
+                    <p class="mt-3 text-3xl font-extrabold {% if loop.index == 1 %} text-amber-600 {% else %} text-gray-800 {% endif %}">R$ {{ "%.2f"|format(product.preco) }}</p>
+
+                    <div class="mt-5 flex gap-3">
+                        <a href="{{ product.url }}" target="_blank" class="flex-1 text-center py-3 font-semibold rounded-xl transition bg-indigo-600 text-white hover:bg-indigo-700">Ir ao Site →</a>
+
+                        <button onclick="addToCart('{{ product.nome }}', {{ product.preco }}, '{{ product.image_url }}')" class="px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition">➕</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <div class="text-center p-10 bg-white rounded-2xl shadow-xl border border-gray-200 fade">
+                <p class="font-bold text-2xl text-gray-800">Bem-vindo ao Comparador de Preços!</p>
+                <p class="text-md mt-2 text-gray-600">Digite o nome de um produto para começar.</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- PLANOS -->
+        <section class="mt-20">
+            <h2 class="text-4xl font-bold text-center text-gray-800 mb-10">Planos</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-3xl shadow-xl border hover:shadow-2xl transition text-center">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">Plano Básico</h3>
+                    <p class="text-gray-600 mb-6">Para comparar preços.</p>
+                    <p class="text-4xl font-extrabold text-indigo-600 mb-6">R$ 0</p>
+
+                    <ul class="text-gray-700 space-y-2 mb-6">
+                        <li>✔ Comparação simples</li>
+                        <li>✔ Sem limite de buscas</li>
+                        <li>✖ Sem carrinho</li>
+                    </ul>
+
+                    <button class="w-full py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold">Escolher</button>
+                </div>
+
+                <div class="bg-indigo-600 text-white p-8 rounded-3xl shadow-2xl scale-105">
+                    <h3 class="text-2xl font-bold mb-3">Plano PRO</h3>
+                    <p class="mb-6 opacity-90">Para quem faz compras semanais.</p>
+                    <p class="text-4xl font-extrabold mb-6">R$ 19/mês</p>
+
+                    <ul class="space-y-2 mb-6">
+                        <li>✔ Lista de compras</li>
+                        <li>✔ Histórico de preços</li>
+                        <li>✔ Alertas de promoção</li>
+                    </ul>
+
+                    <button class="w-full py-3 bg-white text-indigo-700 rounded-xl font-bold hover:bg-gray-100">Escolher</button>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl shadow-xl border hover:shadow-2xl transition text-center">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">Empresarial</h3>
+                    <p class="text-gray-600 mb-6">Para bares, mercados e restaurantes.</p>
+                    <p class="text-4xl font-extrabold text-indigo-600 mb-6">R$ 79/mês</p>
+
+                    <ul class="text-gray-700 space-y-2 mb-6">
+                        <li>✔ Painel avançado</li>
+                        <li>✔ Relatórios profissionais</li>
+                        <li>✔ Exportação CSV</li>
+                    </ul>
+
+                    <button class="w-full py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold">Escolher</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- SCRIPT DO CARRINHO -->
+    <script>
+        let cart = [];
+
+        function toggleCart() {
+            document.getElementById("cartDrawer").classList.toggle("translate-x-full");
+        }
+
+        function addToCart(name, price, image) {
+            const existing = cart.find(item => item.name === name);
+
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ name, price, qty: 1 });
+            }
+
+            renderCart();
+
+            // FECHA O CARRINHO AUTOMATICAMENTE APÓS ADICIONAR
+            document.getElementById("cartDrawer").classList.add("translate-x-full");
+        }
+
+        function removeFromCart(name) {
+            cart = cart.filter(item => item.name !== name);
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById("cartList");
+            list.innerHTML = "";
+
+            cart.forEach(item => {
+                const li = document.createElement("li");
+                li.className = "flex justify-between items-center bg-gray-100 p-3 rounded-xl";
+
+                li.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${item.name}</p>
+                        <p class="text-sm text-gray-600">Qtd: ${item.qty} • R$ ${(item.price * item.qty).toFixed(2)}</p>
+                    </div>
+                    <button onclick="removeFromCart('${item.name}')" class="text-red-600 font-bold text-lg">✖</button>
+                `;
+
+                list.appendChild(li);
+            });
+
+            updateTotal();
+        }
+
+        function updateTotal() {
+            const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+            document.getElementById("cartTotal").textContent = 
+                "R$ " + total.toFixed(2).replace(".", ",");
+        }
+    </script>
+
+
+</body>
+</html>
