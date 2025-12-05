@@ -1,10 +1,5 @@
-# Usa uma imagem base Python que é compatível com Playwright/Chromium
-# A imagem 'slim' é menor, mas garantimos as dependências com os comandos RUN
 FROM python:3.10-slim
 
-# Instala as dependências necessárias para o Playwright (Chromium)
-# Pacotes obsoletos (libgconf-2-4, libdbus-glib-1-2, libnss3-dev, libxtst6) foram removidos.
-# O nome do pacote libgdk-pixbuf2.0-0 foi corrigido para libgdk-pixbuf-2.0-0.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 \
     libfontconfig1 \
@@ -30,29 +25,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Configura o diretório de trabalho no container
 WORKDIR /app
 
-# Copia os arquivos de dependência e os instala
-# Você precisa de um arquivo requirements.txt
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Instala os browsers do Playwright (Chromium é o que você está usando)
-# O comando '--with-deps' instala as dependências do sistema automaticamente.
-RUN playwright install chromium --with-deps
+# instala chromium e deps
+RUN playwright install chromium
 
-# Copia o restante do código da aplicação
-# 'templates' é onde deve estar seu index.html
 COPY . .
 
-# Define a variável de ambiente para o host/porta do Flask
-ENV FLASK_HOST=0.0.0.0
-ENV FLASK_PORT=5000
-
-# O container irá rodar na porta 5000 (padrão do Flask)
 EXPOSE 5000
 
-# Comando para rodar a aplicação usando Gunicorn, que é o servidor de produção
-# Configuramos 1 worker e 4 threads para lidar melhor com o scraping assíncrono (Playwright).
-CMD ["gunicorn", "--workers", "1", "--threads", "4", "--bind", "0.0.0.0:5000", "conexao:app"]
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "conexao:app"]
